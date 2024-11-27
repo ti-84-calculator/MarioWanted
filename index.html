@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wanted Minigame</title>
+</head>
+<body>
+
+    <canvas id='canvas'></canvas>
+
+    <script src='assets.js'></script>
+    <script src='helpers.js'></script>
+    <script src='loop.js'></script>
+
+    <script src='level_generation.js'></script>
+    <script>
+
+var W = 256;
+var SH = 192;
+var H = SH*2;
+
+var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');
+var scale = 1; // 0|Math.round(window.outerWidth / W, window.outerHeight / H);
+console.log('scale:', scale);
+canvas.width = W*scale;
+canvas.height = H*scale;
+
+var loop = new Loop();
+
+var assets = {};
+var bundle = [
+    ['mario', 'image', 'src/gfx/mario.png'],
+    ['luigi', 'image', 'src/gfx/luigi.png'],
+    ['wario', 'image', 'src/gfx/wario.png'],
+    ['yoshi', 'image', 'src/gfx/yoshi.png'],
+
+    ['wanted_bg', 'image', 'src/gfx/wanted_bg.png'],
+    ['mario_big', 'image', 'src/gfx/mario_big.png'],
+    ['luigi_big', 'image', 'src/gfx/luigi_big.png'],
+    ['wario_big', 'image', 'src/gfx/wario_big.png'],
+    ['yoshi_big', 'image', 'src/gfx/yoshi_big.png'],
+];
+Assets.loadAssetBundle(assets, bundle,
+(i) => {
+    Helpers.drawBg(ctx);
+    Helpers.drawLoadingBar(ctx, i/bundle.length);
+},
+() => {
+    console.log('done loading');
+    Helpers.drawBg(ctx);
+    Helpers.drawText(ctx, ['Done loading!']);
+    start();
+},
+(e) => {
+    throw e;
+});
+
+const E_MARIO = 1;
+const E_LUIGI = 2;
+const E_WARIO = 3;
+const E_YOSHI = 4;
+
+const BRO_ASSETS = {};
+BRO_ASSETS[E_MARIO] = {
+    sprite: 'mario',
+    bigsprite: 'mario_big'
+};
+BRO_ASSETS[E_LUIGI] = {
+    sprite: 'luigi',
+    bigsprite: 'luigi_big'
+};
+BRO_ASSETS[E_WARIO] = {
+    sprite: 'wario',
+    bigsprite: 'wario_big'
+};
+BRO_ASSETS[E_YOSHI] = {
+    sprite: 'yoshi',
+    bigsprite: 'yoshi_big'
+};
+
+var tick = 0;
+var level = 0;
+var wantedbro = 0;
+function getRandomBroType() {
+    var candidates = [E_MARIO,E_LUIGI,E_WARIO,E_YOSHI];
+    return candidates[Helpers.randInt(0, candidates.length-1)];
+}
+function getRandomUnwantedBroType() {
+    var candidates = [E_MARIO,E_LUIGI,E_WARIO,E_YOSHI];
+    if (wantedbro !== 0)
+        candidates.splice(wantedbro-1, 1);
+
+    return candidates[Helpers.randInt(0, candidates.length-1)];
+}
+function selectNextWantedBro() {
+    wantedbro = getRandomBroType();
+    console.log('next wanted bro:', wantedbro);
+}
+
+var bros = [];
+class Bro {
+    constructor(x=0,y=0,z=0,bro=0,behavior=0) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.bro = bro;
+        this.behavior = behavior;
+    }
+
+    update() {
+
+    }
+
+    draw() {
+        var sprite = assets[BRO_ASSETS[this.bro].sprite];
+        var left = this.x - sprite.width/2;
+        var top = this.y - sprite.height/2 + H/2;
+
+        ctx.drawImage(
+            sprite,
+            Math.round(left * scale), Math.round(top * scale),
+            sprite.width * scale, sprite.height * scale
+        );
+    }
+}
+function drawBros() {
+    var sorted = [];
+    for (var i = 0; i < bros.length; i++)
+        sorted[i] = bros[i];
+
+    sorted.sort((a, b) => {
+        return a.z - b.z;
+    })
+
+    for (var i = 0; i < sorted.length; i++)
+        sorted[i].draw();
+}
+
+function drawWantedBg() {
+    // Wanted background
+    ctx.drawImage(assets['wanted_bg'], 0,0, W*scale,SH*scale);
+
+    // Big sprite
+    var bigsprite = assets[BRO_ASSETS[wantedbro].bigsprite];
+    var left = W/2 - bigsprite.width/2;
+    var top = SH/2 - bigsprite.height/2 - 8;
+    ctx.drawImage(
+        bigsprite,
+        Math.round(left * scale), Math.round(top * scale),
+        bigsprite.width * scale, bigsprite.height * scale
+    );
+}
+function drawBg() {
+    // Bottom background
+    ctx.fillStyle = '#000000'; // FFE742
+    ctx.fillRect(0, SH*scale, W*scale, SH*scale);
+}
+
+function update() {
+
+    // Bros
+    for (var i = 0; i < bros.length; i++) {
+        bros[i].update();
+    }
+
+    drawBg();
+    drawBros();
+    drawWantedBg();
+
+    tick++;
+}
+
+function start() {
+    selectNextWantedBro();
+    generateLevel();
+
+    loop.start();
+    console.log('started');
+}
+
+loop.onUpdate = update;
+
+    </script>
+
+</body>
+</html>
