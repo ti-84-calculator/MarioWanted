@@ -34,6 +34,8 @@ var H = SH*2;
 
 var canvas = document.getElementById('canvas');
 var scale = Math.ceil(Math.min(window.outerWidth / W, window.outerHeight / H));
+if (scale > 32)
+    scale = 32; // Just guessin tbh
 canvas.width = W*scale;
 canvas.height = H*scale;
 window.onresize = function() {
