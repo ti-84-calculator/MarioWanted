@@ -5,13 +5,19 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Wanted!</title>
+
+    <style>
+        body {
+            height: 100%;
+            width: 100%;
+            overflow: auto;
+        }
+    </style>
 </head>
 <body>
+    <canvas class='Canvas' id='canvas'></canvas>
 
     <h3>wanted minigame 1 week challenge</h3>
-
-    <canvas id='canvas'></canvas>
-
     <pre>nectarboy | 2024</pre>
 
     <script src='assets.js'></script>
@@ -27,11 +33,23 @@ var SH = 192;
 var H = SH*2;
 
 var canvas = document.getElementById('canvas');
-var ctx = canvas.getContext('2d');
-var scale = 1; // 0|Math.round(window.outerWidth / W, window.outerHeight / H);
-console.log('scale:', scale);
+var scale = Math.ceil(Math.min(window.outerWidth / W, window.outerHeight / H));
 canvas.width = W*scale;
 canvas.height = H*scale;
+window.onresize = function() {
+    if (window.innerWidth / window.innerHeight < W / H) {
+        canvas.style.width = '95vw';
+        canvas.style.height = 'initial';
+    }
+    else {
+        canvas.style.height = '95vh';
+        canvas.style.width = 'initial';
+    }
+};
+window.onresize();
+
+var ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
 
 var loop = new Loop();
 var controller = new Controller(canvas);
@@ -124,7 +142,6 @@ function drawNumber(x,y, n, numbersize=16, orientation=0) {
     var number = String(n);
     var numberssprite = assets['numbers'];
 
-    ctx.imageSmoothingEnabled = false;
     for (var i = 0; i < number.length; i++) {
         var xx = (
             orientation === -1  ? x - numbersize * (number.length-1 - i) - numbersize/2 : // Right To Left
@@ -309,9 +326,10 @@ function clearAllExceptWantedBro() {
 
 function drawWantedBg() {
     var temp = document.createElement('canvas');
-    var tempctx = temp.getContext('2d');
     temp.width = W*scale;
     temp.height = SH*scale;
+    var tempctx = temp.getContext('2d');
+    tempctx.imageSmoothingEnabled = false;
 
     // Wanted background
     tempctx.drawImage(assets['wanted_bg'], 0,0, W*scale,SH*scale);
