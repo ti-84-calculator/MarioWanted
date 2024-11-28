@@ -12,6 +12,9 @@
             width: 100%;
             overflow: auto;
         }
+        .Canvas {
+            image-rendering: smoothing;
+        }
     </style>
 </head>
 <body>
@@ -54,6 +57,7 @@ var ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
 var loop = new Loop();
+loop.doframeskip = true;
 var controller = new Controller(canvas);
 
 var assets = {};
@@ -315,6 +319,11 @@ function checkIfClickedBro() {
 
         if (bros[i].mouseIsInside(x,y - SH)) {
             console.log('no :(');
+            time -= 10;
+            if (time <= 0) {
+                time = 0;
+                timeUpEvent();
+            }
             return;
         }
     }

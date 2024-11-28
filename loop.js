@@ -39,6 +39,8 @@ class Loop {
             if (this.paused)
                 return;
 
+            var time0 = performance.now();
+
             if (this.doframeskip) {
                 if (this.firstframe) {
                     this.prevtimeelapsed = performance.now();
@@ -69,6 +71,7 @@ class Loop {
             }
 
             this.frameid = requestAnimFrame(anonGameLoop);
+            //this.frameid = window.setTimeout(anonGameLoop, 1000/60 - (performance.now() - time0));
         };
 
         this.start = function() {
@@ -90,6 +93,7 @@ class Loop {
             this.firstframe = false;
 
             cancelAnimFrame(this.frameid);
+            //clearTimeout(this.frameid);
             this.frameid = null;
         };
 
