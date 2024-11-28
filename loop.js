@@ -118,23 +118,24 @@ class Loop {
         //         console.log('hidden tab', browservisibilitypaused, this.paused);
         //     }
         // });
-        window.addEventListener('focus', e => {
-            this.hidden = false;
+        
+        // window.addEventListener('focus', e => {
+        //     this.hidden = false;
 
-            if (!browservisibilitypaused) {
-                loop.start();
-            }
-            console.log('focused window, started'/*, browservisibilitypaused, this.paused*/);
-        });
-        window.addEventListener('blur', e => {
-            if (this.hidden)
-                return;
-            this.hidden = true;
+        //     if (!browservisibilitypaused) {
+        //         loop.start();
+        //     }
+        //     console.log('focused window, started'/*, browservisibilitypaused, this.paused*/);
+        // });
+        // window.addEventListener('blur', e => {
+        //     if (this.hidden)
+        //         return;
+        //     this.hidden = true;
 
-            browservisibilitypaused = this.paused;
-            loop.stop();
-            console.log('unfocused window, stopped'/*, browservisibilitypaused, this.paused*/);
-        });
+        //     browservisibilitypaused = this.paused;
+        //     loop.stop();
+        //     console.log('unfocused window, stopped'/*, browservisibilitypaused, this.paused*/);
+        // });
 
     }
 }

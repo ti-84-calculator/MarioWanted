@@ -1,6 +1,5 @@
 function generateLevel() {
     bros.length = 0;
-    level = 3;
 
     switch (level) {
         case 0: {
@@ -31,7 +30,7 @@ function generateLevel() {
                 for (var y = 0; y < h; y++)
                     bros.push(new Bro(W/2 + dist * (x - w/2 + 0.5), SH/2 + dist * (y - h/2 + 0.5), 0, getRandomUnwantedBroType(), 0));
 
-            var i = Helpers.randInt(0, bros.length);
+            var i = Helpers.randInt(0, bros.length-1);
             bros[i].bro = wantedbro;
 
             break;
@@ -41,16 +40,23 @@ function generateLevel() {
             break;
         }
     }
+
+    wantedbroi = 0;
+    while (wantedbroi < bros.length) {
+        if (bros[wantedbroi].bro === wantedbro)
+            break;
+        wantedbroi++;
+    }
 }
 
-var holes = 50;
+var holes = 40;
 // 13x9
 function generateLevel_stillcrowd() {
     const w = 13;
     const h = 9;
     const paddingx = 8;
     const paddingy = 16;
-    const offset = 3;
+    const offset = 2;
 
     for (var x = 0; x < w; x++) {
         var xx = x/(w - 1) * (W - paddingx*2) + paddingx;
@@ -71,5 +77,5 @@ function generateLevel_stillcrowd() {
     else
         bros[wantedi].z = 0;
 
-    holes += (17 - holes) * 0.25;
+    holes += (17 - holes) * 0.2; // 0.25
 }
