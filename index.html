@@ -2,7 +2,19 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/png" href="docs/favicon.png">
+    <!-- fix these -->
+    <link rel='apple-touch-icon' href='docs/ad512.png'>
+    <link rel='image_src' href='docs/ad512.png'> 
+    <meta property='og:type' content='website'>
+    <meta property='og:title' content='Wanted! Minigame'>
+    <meta property='og:url' content='https://nectarboy.github.io/MarioWanted'>
+    <meta property='og:image' itemprop="image primaryImageOfPage" content='https://github.com/nectarboy/MarioWanted/blob/main/docs/ad512.png?raw=true'>
+    <meta property='og:description' content='Play the "Wanted" Mario minigame online!'>
+    <meta name='description' content='Play the "Wanted" Mario minigame online!'>
+    <meta name='keywords' content='mario, wanted, mariowanted, wanted minigame, minigame, mini game, new super mario bros, super mario 64 ds, find luigi, findluigi'>
+    <meta name='author' content='github.com/nectarboy'>
+
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Wanted!</title>
 
@@ -138,6 +150,7 @@ var wantedbro = 0;
 var wantedbroi = 0;
 var spotlightr = 0;
 var lightson = false;
+var timeupbyincorrect = false;
 
 var time = 0;
 var timetick = 0;
@@ -336,6 +349,7 @@ function checkIfClickedBro() {
             if (time <= 0) {
                 time = 0;
                 timeUpEvent();
+                timeupbyincorrect = true;
             }
             particles.push(new Particle(sorted[i].x, sorted[i].y, PARTICLE_M10));
             return;
@@ -523,7 +537,7 @@ function update() {
         drawGui();
     }
     else if (state === STATE_TIMEUP) {
-        if (tick === 0) {
+        if (tick === (timeupbyincorrect ? 64 : 0)) {
             clearAllExceptWantedBro();
         }
         tick++;
@@ -590,6 +604,8 @@ function update() {
 
 function start() {
     time = 10;
+    timeupbyincorrect = false;
+    globaltick = 0;
     drumRollEvent();
 
     loop.start();
