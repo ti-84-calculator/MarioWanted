@@ -75,7 +75,9 @@ var bundle = [
 
     ['time', 'image', 'src/gfx/time.png'],
     ['level', 'image', 'src/gfx/level.png'],
-    ['numbers', 'image', 'src/gfx/numbers.png']
+    ['numbers', 'image', 'src/gfx/numbers.png'],
+    ['plus_five', 'image', 'src/gfx/plus_five.png'],
+    ['minus_ten', 'image', 'src/gfx/minus_ten.png']
 ];
 Assets.loadAssetBundle(assets, bundle,
 (i) => {
@@ -98,12 +100,16 @@ const STATE_MAINGAME = 2;
 const STATE_TIMEUP = 3;
 const STATE_CORRECT = 4;
 
+const INVINCIBILITY_DURATION = 60;
 const DRUM_ROLL_DURATION = 120;
 
 const E_MARIO = 1;
 const E_LUIGI = 2;
 const E_WARIO = 3;
 const E_YOSHI = 4;
+
+const PARTICLE_P5 = 1;
+const PARTICLE_M10 = 2;
 
 const BRO_ASSETS = {};
 BRO_ASSETS[E_MARIO] = {
@@ -126,6 +132,7 @@ BRO_ASSETS[E_YOSHI] = {
 var holdingclick = false;
 var state = 0;
 var tick = 0;
+var globaltick = 0;
 var level = 0;
 var wantedbro = 0;
 var wantedbroi = 0;
@@ -217,14 +224,21 @@ class Bro {
         this.y = y;
         this.z = z;
         this.bro = bro;
-        this.behavior = 1;
+        this.behavior = behavior;
 
         this.vx = 0;
         this.vy = 0;
         this.wrap = false;
+
+        this.invincibility = 0;
     }
 
     update() {
+        if (this.invincibility) {
+            this.invincibility--;
+            return;
+        }
+
         switch (this.behavior) {
         case 1:
             this.x += this.vx;
@@ -262,6 +276,9 @@ class Bro {
     }
 
     draw(offx=0, offy=0) {
+        if (this.invincibility && globaltick % 10 < 5)
+            return;
+
         var sprite = assets[BRO_ASSETS[this.bro].sprite];
         var left = offx + this.x - sprite.width/2;
         var top = offy + this.y - sprite.height/2 + SH;
@@ -288,18 +305,11 @@ class Bro {
     }
 }
 function drawBros() {
-    var sorted = [];
-    for (var i = 0; i < bros.length; i++)
-        sorted[i] = bros[i];
-
-    sorted.sort((a, b) => {
-        return a.z - b.z;
-    })
+    var sorted = getSortedBrosArray();
 
     for (var i = 0; i < sorted.length; i++)
         sorted[i].draw();
 }
-
 function checkIfClickedBro() {
     var x = controller.x / scale;
     var y = controller.y / scale;
@@ -310,20 +320,24 @@ function checkIfClickedBro() {
     if (bros[wantedbroi].mouseIsInside(x,y - SH)) {
         console.log('yes :)');
         correctEvent();
+        particles.push(new Particle(bros[wantedbroi].x, bros[wantedbroi].y, PARTICLE_P5));
         return;
     }
 
-    for (var i = 0; i < bros.length; i++) {
-        if (i === wantedbroi)
+    var sorted = getSortedBrosArray();
+    for (var i = sorted.length-1; i >= 0; i--) {
+        if (sorted[i].bro === wantedbro)
             continue;
 
-        if (bros[i].mouseIsInside(x,y - SH)) {
+        if (sorted[i].mouseIsInside(x,y - SH) && !sorted[i].invincibility) {
             console.log('no :(');
+            sorted[i].invincibility = INVINCIBILITY_DURATION;
             time -= 10;
             if (time <= 0) {
                 time = 0;
                 timeUpEvent();
             }
+            particles.push(new Particle(sorted[i].x, sorted[i].y, PARTICLE_M10));
             return;
         }
     }
@@ -333,6 +347,64 @@ function clearAllExceptWantedBro() {
     bros.length = 0;
     bros.push(bro);
     wantedbroi = 0;
+}
+function getSortedBrosArray() {
+    var sorted = [];
+    for (var i = 0; i < bros.length; i++)
+        sorted[i] = bros[i];
+
+    sorted.sort((a, b) => {
+        return a.z - b.z;
+    });
+
+    return sorted;
+}
+
+var particles = [];
+class Particle {
+    constructor(x,y,type) {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+
+        this.tick = 0;
+        this.shouldkill = false;
+    };
+
+    update() {
+        this.tick++;
+
+        if (this.tick <= 20)
+            this.y += this.type === PARTICLE_P5 ? -1.25 : 1.25;
+
+        if (this.tick === 75)
+            this.shouldkill = true;
+    }
+
+    draw() {
+        var sprite = this.type === PARTICLE_P5 ? assets['plus_five'] : assets['minus_ten'];
+        var left = this.x - sprite.width/2;
+        var top = this.y - sprite.height/2 + SH;
+
+        ctx.drawImage(
+            sprite,
+            Math.round(left * scale), Math.round(top * scale),
+            sprite.width * scale, sprite.height * scale
+        );
+    }
+}
+function updateParticles() {
+    for (var i = 0; i < particles.length; i++) {
+        particles[i].update();
+        if (particles[i].shouldkill) {
+            particles.splice(i, 1);
+            i--;
+        }
+    }
+}
+function drawParticles() {
+    for (var i = 0; i < particles.length; i++)
+        particles[i].draw(); 
 }
 
 function drawWantedBg() {
@@ -399,6 +471,7 @@ function drumRollEvent() {
 }
 function mainGameEvent() {
     tick = 0;
+    particles.length = 0;
     generateLevel();
     state = STATE_MAINGAME;
 }
@@ -430,6 +503,9 @@ function update() {
             bros[i].update();
         }
 
+        // Particles
+        updateParticles();
+
         // Clicking
         if (controller.clicking) {
             if (!holdingclick)
@@ -442,6 +518,7 @@ function update() {
 
         drawBg();
         drawBros();
+        drawParticles();
         drawWantedBg();
         drawGui();
     }
@@ -451,13 +528,17 @@ function update() {
         }
         tick++;
 
-        if (tick >= 60)
+        // Particles
+        updateParticles();
+
+        if (tick >= 48)
             lightson = true;
         else
             spotlightr += 2;
 
         drawBg();
         drawBros();
+        drawParticles();
         drawWantedBg();
         drawGui();
     }
@@ -467,7 +548,10 @@ function update() {
         }
         tick++;
 
-        if (tick >= 60)
+        // Particles
+        updateParticles();
+
+        if (tick >= 48)
             lightson = true;
         else
             spotlightr += 2;
@@ -492,6 +576,7 @@ function update() {
 
         drawBg();
         drawBros();
+        drawParticles();
         drawWantedBg();
         drawGui();
     }
@@ -500,6 +585,7 @@ function update() {
     // drawBros();
     // drawWantedBg();
     // drawGui();
+    globaltick++;
 }
 
 function start() {

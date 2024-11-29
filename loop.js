@@ -103,25 +103,25 @@ class Loop {
 
         // dont run when out of browser or unfocused
         var browservisibilitypaused = true;
-        // document.addEventListener('visibilitychange', e => {
-        //     if (document.visibilityState === 'visible') {
-        //         this.hidden = false;
+        document.addEventListener('visibilitychange', e => {
+            if (document.visibilityState === 'visible') {
+                this.hidden = false;
 
-        //         if (!browservisibilitypaused) {
-        //             loop.start();
-        //         }
-        //         console.log('unhidden tab', browservisibilitypaused, this.paused); // THIS IS SO ANNOYING WHY DID I KEEP THIS SO LONG
-        //     }
-        //     else {
-        //         if (this.hidden)
-        //             return;
-        //         this.hidden = true;
+                if (!browservisibilitypaused) {
+                    loop.start();
+                }
+                console.log('unhidden tab', browservisibilitypaused, this.paused); // THIS IS SO ANNOYING WHY DID I KEEP THIS SO LONG
+            }
+            else {
+                if (this.hidden)
+                    return;
+                this.hidden = true;
 
-        //         browservisibilitypaused = this.paused;
-        //         loop.stop();
-        //         console.log('hidden tab', browservisibilitypaused, this.paused);
-        //     }
-        // });
+                browservisibilitypaused = this.paused;
+                loop.stop();
+                console.log('hidden tab', browservisibilitypaused, this.paused);
+            }
+        });
         
         // window.addEventListener('focus', e => {
         //     this.hidden = false;
