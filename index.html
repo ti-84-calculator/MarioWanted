@@ -35,6 +35,8 @@
     <h3>wanted minigame 1 week challenge</h3>
     <pre>nectarboy | 2024</pre>
 
+    <script src='Tone.js'></script>
+
     <script src='assets.js'></script>
     <script src='controller.js'></script>
     <script src='helpers.js'></script>
@@ -89,7 +91,17 @@ var bundle = [
     ['level', 'image', 'src/gfx/level.png'],
     ['numbers', 'image', 'src/gfx/numbers.png'],
     ['plus_five', 'image', 'src/gfx/plus_five.png'],
-    ['minus_ten', 'image', 'src/gfx/minus_ten.png']
+    ['minus_ten', 'image', 'src/gfx/minus_ten.png'],
+
+    ['bgm', 'audio', 'src/sfx/bgm_loop.wav'],
+    ['timer_tick', 'audio', 'src/sfx/timer_tick.wav'],
+    ['timer_tick_urgent', 'audio', 'src/sfx/timer_tick_urgent.wav'],
+    ['drumroll', 'audio', 'src/sfx/drumroll_loop.wav'],
+    ['drumroll_end', 'audio', 'src/sfx/drumroll_end.wav'],
+    ['correct', 'audio', 'src/sfx/correct_fixed.wav'],
+    ['incorrect', 'audio', 'src/sfx/incorrect.wav'],
+    ['timer_add', 'audio', 'src/sfx/timer_add.wav'],
+    ['star_get', 'audio', 'src/sfx/star_get.wav'],
 ];
 Assets.loadAssetBundle(assets, bundle,
 (i) => {
@@ -99,13 +111,66 @@ Assets.loadAssetBundle(assets, bundle,
 () => {
     console.log('done loading');
     Helpers.drawBg(ctx);
-    Helpers.drawText(ctx, ['Done loading!']);
-    start();
+    Helpers.drawText(ctx, ['Click to Start!']);
+    //loadSfxPlayers();
+    //start();
     controller.enableMouse();
+
+    canvas.onclick = () => {
+        start();
+        canvas.onclick = null;
+    };
 },
 (e) => {
     throw e;
 });
+
+class Sfx {
+    constructor(id,volume=0,loop=false,loopStart=0,loopEnd=0) {
+        this.id = id;
+        this.volume = volume;
+        this.loop = loop;
+        this.loopStart = loopStart;
+        this.loopEnd = loopEnd;
+        this.players = [];
+    };
+
+    stopAllPlaying() {
+        for (var i = 0; i < this.players.length; i++) {
+            this.players[i].stop();
+        }
+        this.players.length = 0;
+    }
+    play() {
+        var player = new Tone.Player(assets[this.id]).toDestination();
+        player.volume.value = this.volume;
+        player.loop = this.loop;
+        player.setLoopPoints(this.loopStart, this.loopEnd);
+        player.start();
+        player.seek(0);
+
+        this.players.push(player);
+        var self = this;
+        player.onstop = () => {
+            console.log(this.id, 'stop');
+            if (!self.loop)
+                self.players.splice(self.players.indexOf(player), 1);
+        };
+
+        return player;
+    }
+}
+const sfx = {
+    'bgm': new Sfx('bgm', -5, true),
+    'timer_tick': new Sfx('timer_tick'),
+    'timer_tick_urgent': new Sfx('timer_tick_urgent'),
+    'drumroll': new Sfx('drumroll', 0, true, 0.461, 1.1176875),
+    'drumroll_end': new Sfx('drumroll_end'),
+    'correct': new Sfx('correct'),
+    'incorrect': new Sfx('incorrect'),
+    'timer_add': new Sfx('timer_add'),
+    'star_get': new Sfx('star_get')
+};
 
 const STATE_DRUMROLL = 1;
 const STATE_MAINGAME = 2;
@@ -159,7 +224,14 @@ function updateTime() {
         timetick = 0;
         time--;
         if (time === 0) {
+            sfx['timer_tick_urgent'].play();
             timeUpEvent();
+        }
+        else if (time <= 2) {
+            sfx['timer_tick_urgent'].play();
+        }
+        else {
+            sfx['timer_tick'].play();
         }
     }
 }
@@ -241,7 +313,7 @@ class Bro {
 
         this.vx = 0;
         this.vy = 0;
-        this.wrap = false;
+        this.wrap = 0;
 
         this.invincibility = 0;
     }
@@ -256,9 +328,17 @@ class Bro {
         case 1:
             this.x += this.vx;
             this.y += this.vy;
-            if (this.wrap) {
-                this.x = (this.x % W) + (this.x < 0) * W;
-                this.y = (this.y % SH) + (this.y < 0) * SH;
+            if (this.wrap > 0) {
+                var dist = (this.wrap - 1)*16;
+                if (this.x > W + dist)
+                    this.x = -dist;
+                else if (this.x < -dist)
+                    this.x = W + dist;
+
+                if (this.y > SH + dist)
+                    this.y = -dist;
+                else if (this.y < -dist)
+                    this.y = SH + dist;
             }
         }
     }
@@ -272,7 +352,7 @@ class Bro {
 
         var inside = (x >= left && x <= right && y >= top && y <= bottom);
 
-        if (!this.wrap)
+        if (this.wrap !== 1)
             return inside;
 
         if (offx === 0 && left < 0)
@@ -302,7 +382,7 @@ class Bro {
             sprite.width * scale, sprite.height * scale
         );
 
-        if (!this.wrap)
+        if (this.wrap !== 1)
             return;
 
         // Wraparound
@@ -332,8 +412,10 @@ function checkIfClickedBro() {
 
     if (bros[wantedbroi].mouseIsInside(x,y - SH)) {
         console.log('yes :)');
+        
         correctEvent();
         particles.push(new Particle(bros[wantedbroi].x, bros[wantedbroi].y, PARTICLE_P5));
+        sfx['correct'].play();
         return;
     }
 
@@ -352,6 +434,7 @@ function checkIfClickedBro() {
                 timeupbyincorrect = true;
             }
             particles.push(new Particle(sorted[i].x, sorted[i].y, PARTICLE_M10));
+            sfx['incorrect'].play();
             return;
         }
     }
@@ -498,8 +581,20 @@ function correctEvent() {
     state = STATE_CORRECT;
 }
 function update() {
+    var wasHoldingclick = holdingclick;
+    holdingclick = controller.clicking;
+
     if (state === STATE_DRUMROLL) {
         tick++;
+
+        if (tick === 2) {
+            sfx['drumroll'].play();
+        }
+
+        if (tick === DRUM_ROLL_DURATION - 15) {
+            sfx['drumroll'].stopAllPlaying();
+            sfx['drumroll_end'].play();
+        }
 
         if (tick === DRUM_ROLL_DURATION) {
             mainGameEvent();
@@ -521,14 +616,8 @@ function update() {
         updateParticles();
 
         // Clicking
-        if (controller.clicking) {
-            if (!holdingclick)
-                checkIfClickedBro();
-            holdingclick = true;
-        }
-        else {
-            holdingclick = false;
-        }
+        if (controller.clicking && !wasHoldingclick)
+            checkIfClickedBro();
 
         drawBg();
         drawBros();
@@ -549,6 +638,11 @@ function update() {
             lightson = true;
         else
             spotlightr += 2;
+
+        // Todo: gameover sequence
+        if (tick === 120*1.5) {
+            start();
+        }
 
         drawBg();
         drawBros();
@@ -571,20 +665,24 @@ function update() {
             spotlightr += 2;
 
         // Add time
-        if (time < 50)
-            for (var i = 0; i < 5; i++) {
-                if (tick === 80 + i*4) {
+        for (var i = 0; i < 5; i++) {
+            if (tick === 80 + i*4) {
+                if (time < 50)
                     time++;
-                    break;
-                }
+                sfx['timer_add'].play();
+                break;
             }
+        }
+        if (tick === 80) {
+            sfx['star_get'].play();
+        }
 
         // Next level
         if (tick === 200) {
             level++;
             drumRollEvent();
 
-            if ((level % 5) !== 4)
+            if ((level % 5) !== 0)
                 tick = DRUM_ROLL_DURATION - 30;
         }
 
@@ -603,7 +701,12 @@ function update() {
 }
 
 function start() {
+    Tone.start();
+    sfx['bgm'].stopAllPlaying();
+    sfx['bgm'].play();
+
     time = 10;
+    level = 0;
     timeupbyincorrect = false;
     globaltick = 0;
     drumRollEvent();
@@ -611,6 +714,13 @@ function start() {
     loop.start();
     console.log('started');
 }
+
+// function waitForInput() {
+//     if (controller.clicking) {
+//         loop.onUpdate = update;
+//         Tone.start();
+//     }
+// }
 
 loop.onUpdate = update;
 

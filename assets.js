@@ -13,22 +13,28 @@ class Assets {
                 break;
             }
             case 'audio': {
-                data = new Audio();
+                // data = new Audio();
+                // // var condition = 0;
+                // // function conditionMet(e) {
+                // //     condition++;
+                // //     if (condition === 1) {
+                // //         condition = 0;
+                // //         onLoad();
+                // //     }
+                // // }
+                // //assets[name].oncanplay = conditionMet;
+                // data.onloadeddata = () => {assetsobj[id] = data; onLoad()};
+                // data.onerror = () => onError(`Error loading audio asset (${id})!`);
+                // data.src = src;
+                // data.load();
 
-                // var condition = 0;
-                // function conditionMet(e) {
-                //     condition++;
-                //     if (condition === 1) {
-                //         condition = 0;
-                //         onLoad();
-                //     }
-                // }
-
-                //assets[name].oncanplay = conditionMet;
-                data.onloadeddata = () => {assetsobj[id] = data; onLoad()};
-                data.onerror = () => onError(`Error loading audio asset (${id})!`);
-                data.src = src;
-                data.load();
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                var audioCtx = new AudioContext();
+                var audioFile = fetch(src).then(response => response.arrayBuffer()).then(buffer => audioCtx.decodeAudioData(buffer)).then(buffer => {
+                    console.log(buffer);
+                    assetsobj[id] = buffer;
+                    onLoad();
+                });
                 break;
             }
             case 'font': {

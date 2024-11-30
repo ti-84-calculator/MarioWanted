@@ -13,22 +13,31 @@ function generateLevel() {
             bros.push(new Bro(W/2 + dist, SH/2 + dist, 0, candidates[3], 0));
             break;
         } 
-        case 1:
+        case 1: {
+            generateLevel_grid(4,4);
+            break;
+        }
         case 2: {
+            generateLevel_grid(8,6);
+            break;
+        }
+        case 5: {
             const dist = 32;
-            var w, h;
-            if (level === 1) {
-                w = 4;
-                h = 4;
-            }
-            else {
-                w = 8;
-                h = 6;
-            }
+            const speed = 1;
+            const w = 8;
+            const h = 6;
 
-            for (var x = 0; x < w; x++)
-                for (var y = 0; y < h; y++)
-                    bros.push(new Bro(W/2 + dist * (x - w/2 + 0.5), SH/2 + dist * (y - h/2 + 0.5), 0, getRandomUnwantedBroType(), 0));
+            for (var x = 0; x < w; x++) {
+                for (var y = 0; y < h; y++) {
+                    var bro = new Bro(W/2 + dist * (x - w/2 + 0.5), SH/2 + dist * (y - h/2 + 0.5), 0, getRandomUnwantedBroType(), 1);
+                    bro.wrap = 2;
+                    if (x === 0 || x === 5 || x === 6)
+                        bro.vy = speed;
+                    else
+                        bro.vy = -speed;
+                    bros.push(bro);
+                }
+            }
 
             var i = Helpers.randInt(0, bros.length-1);
             bros[i].bro = wantedbro;
@@ -49,8 +58,27 @@ function generateLevel() {
     }
 }
 
+function generateLevel_grid(w,h) {
+    const dist = 32;
+    // var w, h;
+    // if (level === 1) {
+    //     w = 4;
+    //     h = 4;
+    // }
+    // else {
+    //     w = 8;
+    //     h = 6;
+    // }
+
+    for (var x = 0; x < w; x++)
+        for (var y = 0; y < h; y++)
+            bros.push(new Bro(W/2 + dist * (x - w/2 + 0.5), SH/2 + dist * (y - h/2 + 0.5), 0, getRandomUnwantedBroType(), 0));
+
+    var i = Helpers.randInt(0, bros.length-1);
+    bros[i].bro = wantedbro;
+}
+
 var holes = 40;
-// 13x9
 function generateLevel_stillcrowd() {
     const w = 13;
     const h = 9;
