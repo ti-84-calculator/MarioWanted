@@ -116,10 +116,14 @@ Assets.loadAssetBundle(assets, bundle,
     //start();
     controller.enableMouse();
 
-    canvas.onclick = () => {
+    function onInput() {
         start();
-        canvas.onclick = null;
-    };
+        canvas.removeEventListener('touchend', onInput);
+        canvas.removeEventListener('click', onInput);
+    }
+
+    canvas.addEventListener('touchend', onInput);
+    canvas.addEventListener('click', onInput);
 },
 (e) => {
     throw e;
