@@ -44,8 +44,37 @@ function generateLevel() {
 
             break;
         }
-        default: {
+        case 3:
+        case 4:
+        case 6:
+        case 7:
+        case 8: {
             generateLevel_stillcrowd();
+            break;
+        }
+        case 9: {
+            const dist = 32;
+            const w = 8;
+
+            for (var x = 0; x < w; x++)
+                bros.push(new Bro(W/2 + dist * (x - w/2 + 0.5), -4, 0, getRandomUnwantedBroType(), 0));
+
+            var i = Helpers.randInt(0, bros.length-1);
+            bros[i].bro = wantedbro;
+
+            break;
+        }
+        default: {
+            if (Math.random() < 0.5) {
+                generateLevel_stillcrowd();
+            }
+            else {
+                var type = Helpers.randInt(0,1);
+                if (type === 0)
+                    generateLevel_movingcrowd();
+                else if (type === 1)
+                    generateLevel_bouncingcrowd();
+            }
             break;
         }
     }
@@ -60,15 +89,6 @@ function generateLevel() {
 
 function generateLevel_grid(w,h) {
     const dist = 32;
-    // var w, h;
-    // if (level === 1) {
-    //     w = 4;
-    //     h = 4;
-    // }
-    // else {
-    //     w = 8;
-    //     h = 6;
-    // }
 
     for (var x = 0; x < w; x++)
         for (var y = 0; y < h; y++)
@@ -78,13 +98,14 @@ function generateLevel_grid(w,h) {
     bros[i].bro = wantedbro;
 }
 
-var holes = 40;
 function generateLevel_stillcrowd() {
     const w = 13;
     const h = 9;
     const paddingx = 8;
     const paddingy = 16;
     const offset = 2;
+    const minholes = 30;
+    const maxholes = 7;
 
     for (var x = 0; x < w; x++) {
         var xx = x/(w - 1) * (W - paddingx*2) + paddingx;
@@ -94,6 +115,7 @@ function generateLevel_stillcrowd() {
         }
     }
 
+    var holes = Math.round(difficulty * (maxholes - minholes) + minholes) + Helpers.randInt(0,10);
     for (var i = 0; i < Math.round(holes); i++)
         bros.splice(Helpers.randInt(0, bros.length-1), 1);
 
@@ -105,5 +127,88 @@ function generateLevel_stillcrowd() {
     else
         bros[wantedi].z = 0;
 
-    holes += (17 - holes) * 0.2; // 0.25
+    difficulty += (1 - difficulty) * 0.1;
+}
+
+function generateLevel_movingcrowd() {
+    const w = 13;
+    const h = 9;
+    const paddingx = 8;
+    const paddingy = 16;
+    const offset = 2;
+    const minholes = 75;
+    const maxholes = 25;
+
+    var speeds = {};
+    for (var i = BRO_START; i <= BRO_END; i++) {
+        var speed = Helpers.randNum(0.5,1);
+        var rad = Math.random() * Math.PI*2;
+        speeds[i] = {
+            x: Math.cos(rad) * speed,
+            y: Math.sin(rad) * speed
+        };
+    }
+
+    for (var x = 0; x < w; x++) {
+        var xx = x/(w - 1) * (W - paddingx*2) + paddingx;
+        for (var y = 0; y < h; y++) {
+            var yy = y/(h - 1) * (SH - paddingy*2) + paddingy;
+            var bro = new Bro(xx + Helpers.randInt(-offset,offset), yy + Helpers.randInt(-offset,offset), Helpers.randInt(1,4), getRandomUnwantedBroType(), 1);
+            bro.wrap = 2;
+            bro.vx = speeds[bro.bro].x;
+            bro.vy = speeds[bro.bro].y;
+            bros.push(bro);
+        }
+    }
+
+
+    var holes = Math.round(difficulty * (maxholes - minholes) + minholes) + Helpers.randInt(0,5);
+    for (var i = 0; i < Math.round(holes); i++)
+        bros.splice(Helpers.randInt(0, bros.length-1), 1);
+
+    var wantedi = Helpers.randInt(0, bros.length-1);
+    bros[wantedi].bro = wantedbro;
+    bros[wantedi].z = 0;
+    bro.vx *= 0.9;
+    bro.vy *= 0.9;
+
+    difficulty += (1 - difficulty) * 0.1;
+}
+
+function generateLevel_bouncingcrowd() {
+    const w = 13;
+    const h = 9;
+    const paddingx = 8;
+    const paddingy = 16;
+    const offset = 2;
+    const minholes = 65;
+    const maxholes = 35;
+
+    for (var x = 0; x < w; x++) {
+        var xx = x/(w - 1) * (W - paddingx*2) + paddingx;
+        for (var y = 0; y < h; y++) {
+            var yy = y/(h - 1) * (SH - paddingy*2) + paddingy;
+            var bro = new Bro(xx + Helpers.randInt(-offset,offset), yy + Helpers.randInt(-offset,offset), Helpers.randInt(1,4), getRandomUnwantedBroType(), 1);
+            bro.bounce = true;
+
+            var speed = Helpers.randNum(0.5,1);
+            var rad = Math.random() * Math.PI*2;
+            bro.vx = Math.cos(rad) * speed;
+            bro.vy = Math.sin(rad) * speed;
+            bros.push(bro);
+        }
+    }
+
+
+    var holes = Math.round(difficulty * (maxholes - minholes) + minholes) + Helpers.randInt(0,5);
+    for (var i = 0; i < Math.round(holes); i++)
+        bros.splice(Helpers.randInt(0, bros.length-1), 1);
+
+    var wantedi = Helpers.randInt(0, bros.length-1);
+    bros[wantedi].bro = wantedbro;
+    bros[wantedi].z = 0;
+    bros[wantedi].vx *= 0.9;
+    bros[wantedi].vy *= 0.9;
+
+    difficulty += (1 - difficulty) * 0.1;
 }

@@ -156,7 +156,6 @@ class Sfx {
         this.players.push(player);
         var self = this;
         player.onstop = () => {
-            console.log(this.id, 'stop');
             if (!self.loop)
                 self.players.splice(self.players.indexOf(player), 1);
         };
@@ -188,6 +187,8 @@ const E_MARIO = 1;
 const E_LUIGI = 2;
 const E_WARIO = 3;
 const E_YOSHI = 4;
+const BRO_START = E_MARIO;
+const BRO_END = E_YOSHI;
 
 const PARTICLE_P5 = 1;
 const PARTICLE_M10 = 2;
@@ -211,10 +212,12 @@ BRO_ASSETS[E_YOSHI] = {
 };
 
 var holdingclick = false;
+
 var state = 0;
 var tick = 0;
 var globaltick = 0;
 var level = 0;
+var difficulty = 0;
 var wantedbro = 0;
 var wantedbroi = 0;
 var spotlightr = 0;
@@ -318,6 +321,7 @@ class Bro {
         this.vx = 0;
         this.vy = 0;
         this.wrap = 0;
+        this.bounce = false;
 
         this.invincibility = 0;
     }
@@ -332,7 +336,28 @@ class Bro {
         case 1:
             this.x += this.vx;
             this.y += this.vy;
-            if (this.wrap > 0) {
+
+            if (this.bounce) {
+                const dist = 12;
+                if (this.x > W - dist) {
+                    this.x = W - dist;
+                    this.vx = -this.vx;
+                }
+                else if (this.x < dist) {
+                    this.x = dist;
+                    this.vx = -this.vx;
+                }
+
+                if (this.y > SH - dist) {
+                    this.y = SH - dist;
+                    this.vy = -this.vy;
+                }
+                else if (this.y < dist) {
+                    this.y = dist;
+                    this.vy = -this.vy;
+                }
+            }
+            else if (this.wrap > 0) {
                 var dist = (this.wrap - 1)*16;
                 if (this.x > W + dist)
                     this.x = -dist;
@@ -449,6 +474,10 @@ function clearAllExceptWantedBro() {
     bros.push(bro);
     wantedbroi = 0;
 }
+function clearAllBros() {
+    bros.length = 0;
+    wantedbroi = -1;
+}
 function getSortedBrosArray() {
     var sorted = [];
     for (var i = 0; i < bros.length; i++)
@@ -468,6 +497,7 @@ class Particle {
         this.y = y;
         this.type = type;
 
+        this.sprite = this.type === PARTICLE_P5 ? assets['plus_five'] : assets['minus_ten'];
         this.tick = 0;
         this.shouldkill = false;
     };
@@ -478,19 +508,23 @@ class Particle {
         if (this.tick <= 20)
             this.y += this.type === PARTICLE_P5 ? -1.25 : 1.25;
 
+        if (this.y < this.sprite.height/2)
+            this.y = this.sprite.height/2;
+        else if (this.y > SH - this.sprite.height/2)
+            this.y = SH - this.sprite.height/2;
+
         if (this.tick === 75)
             this.shouldkill = true;
     }
 
     draw() {
-        var sprite = this.type === PARTICLE_P5 ? assets['plus_five'] : assets['minus_ten'];
-        var left = this.x - sprite.width/2;
-        var top = this.y - sprite.height/2 + SH;
+        var left = this.x - this.sprite.width/2;
+        var top = this.y - this.sprite.height/2 + SH;
 
         ctx.drawImage(
-            sprite,
+            this.sprite,
             Math.round(left * scale), Math.round(top * scale),
-            sprite.width * scale, sprite.height * scale
+            this.sprite.width * scale, this.sprite.height * scale
         );
     }
 }
@@ -656,7 +690,10 @@ function update() {
     }
     else if (state === STATE_CORRECT) {
         if (tick === 0) {
-            clearAllExceptWantedBro();
+            if (level === 9)
+                clearAllBros();
+            else
+                clearAllExceptWantedBro();
         }
         tick++;
 
@@ -711,6 +748,7 @@ function start() {
 
     time = 10;
     level = 0;
+    difficulty = 0;
     timeupbyincorrect = false;
     globaltick = 0;
     drumRollEvent();
