@@ -3,7 +3,6 @@
 <head>
     <meta charset="utf-8">
     <link rel="icon" type="image/png" href="docs/favicon.png">
-    <!-- fix these -->
     <link rel='apple-touch-icon' href='docs/ad256.png'>
     <link rel='image_src' href='docs/ad256.png'> 
     <meta property='og:type' content='website'>
@@ -19,754 +18,132 @@
     <title>Wanted!</title>
 
     <style>
-        body {
+        body, html {
+            margin: 0;
+            padding: 0;
             height: 100%;
-            width: 100%;
-            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        canvas {
+            display: block;
         }
         .Canvas {
             image-rendering: smoothing;
         }
+        h3, pre {
+            position: absolute;
+            bottom: 10px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
     </style>
 </head>
 <body>
-    <canvas class='Canvas' id='canvas'></canvas>
-
+    <div class="game-container">
+        <canvas class='Canvas' id='canvas'></canvas>
+    </div>
     <h3>wanted minigame 1 week challenge</h3>
     <pre>nectarboy | 2024</pre>
 
     <script src='Tone.js'></script>
-
     <script src='assets.js'></script>
     <script src='controller.js'></script>
     <script src='helpers.js'></script>
     <script src='loop.js'></script>
-
     <script src='level_generation.js'></script>
     <script>
+        var W = 256;
+        var SH = 192;
+        var H = SH*2;
 
-var W = 256;
-var SH = 192;
-var H = SH*2;
-
-var canvas = document.getElementById('canvas');
-var scale = Math.ceil(Math.min(window.outerWidth / W, window.outerHeight / H));
-if (scale > 32)
-    scale = 32; // Just guessin tbh
-canvas.width = W*scale;
-canvas.height = H*scale;
-window.onresize = function() {
-    if (window.innerWidth / window.innerHeight < W / H) {
-        canvas.style.width = '95vw';
-        canvas.style.height = 'initial';
-    }
-    else {
-        canvas.style.height = '95vh';
-        canvas.style.width = 'initial';
-    }
-};
-window.onresize();
-
-var ctx = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = false;
-
-var loop = new Loop();
-loop.doframeskip = true;
-var controller = new Controller(canvas);
-
-var assets = {};
-var bundle = [
-    ['mario', 'image', 'src/gfx/mario.png'],
-    ['luigi', 'image', 'src/gfx/luigi.png'],
-    ['wario', 'image', 'src/gfx/wario.png'],
-    ['yoshi', 'image', 'src/gfx/yoshi.png'],
-
-    ['wanted_bg', 'image', 'src/gfx/wanted_bg.png'],
-    ['mario_big', 'image', 'src/gfx/mario_big.png'],
-    ['luigi_big', 'image', 'src/gfx/luigi_big.png'],
-    ['wario_big', 'image', 'src/gfx/wario_big.png'],
-    ['yoshi_big', 'image', 'src/gfx/yoshi_big.png'],
-
-    ['time', 'image', 'src/gfx/time.png'],
-    ['level', 'image', 'src/gfx/level.png'],
-    ['numbers', 'image', 'src/gfx/numbers.png'],
-    ['plus_five', 'image', 'src/gfx/plus_five.png'],
-    ['minus_ten', 'image', 'src/gfx/minus_ten.png'],
-
-    ['bgm', 'audio', 'src/sfx/bgm_loop.wav'],
-    ['timer_tick', 'audio', 'src/sfx/timer_tick.wav'],
-    ['timer_tick_urgent', 'audio', 'src/sfx/timer_tick_urgent.wav'],
-    ['drumroll', 'audio', 'src/sfx/drumroll_loop.wav'],
-    ['drumroll_end', 'audio', 'src/sfx/drumroll_end.wav'],
-    ['correct', 'audio', 'src/sfx/correct_fixed.wav'],
-    ['incorrect', 'audio', 'src/sfx/incorrect.wav'],
-    ['timer_add', 'audio', 'src/sfx/timer_add.wav'],
-    ['star_get', 'audio', 'src/sfx/star_get.wav'],
-];
-Assets.loadAssetBundle(assets, bundle,
-(i) => {
-    Helpers.drawBg(ctx);
-    Helpers.drawLoadingBar(ctx, i/bundle.length);
-},
-() => {
-    console.log('done loading');
-    Helpers.drawBg(ctx);
-    Helpers.drawText(ctx, ['Click to Start!']);
-    //loadSfxPlayers();
-    //start();
-    controller.enableMouse();
-
-    function onInput() {
-        start();
-        canvas.removeEventListener('touchend', onInput);
-        canvas.removeEventListener('click', onInput);
-    }
-
-    canvas.addEventListener('touchend', onInput);
-    canvas.addEventListener('click', onInput);
-},
-(e) => {
-    throw e;
-});
-
-class Sfx {
-    constructor(id,volume=0,loop=false,loopStart=0,loopEnd=0) {
-        this.id = id;
-        this.volume = volume;
-        this.loop = loop;
-        this.loopStart = loopStart;
-        this.loopEnd = loopEnd;
-        this.players = [];
-    };
-
-    stopAllPlaying() {
-        for (var i = 0; i < this.players.length; i++) {
-            this.players[i].stop();
-        }
-        this.players.length = 0;
-    }
-    play() {
-        var player = new Tone.Player(assets[this.id]).toDestination();
-        player.volume.value = this.volume;
-        player.loop = this.loop;
-        player.setLoopPoints(this.loopStart, this.loopEnd);
-        player.start();
-        player.seek(0);
-
-        this.players.push(player);
-        var self = this;
-        player.onstop = () => {
-            if (!self.loop)
-                self.players.splice(self.players.indexOf(player), 1);
+        var canvas = document.getElementById('canvas');
+        var scale = Math.ceil(Math.min(window.outerWidth / W, window.outerHeight / H));
+        if (scale > 32) scale = 32;
+        canvas.width = W*scale;
+        canvas.height = H*scale;
+        window.onresize = function() {
+            if (window.innerWidth / window.innerHeight < W / H) {
+                canvas.style.width = '95vw';
+                canvas.style.height = 'initial';
+            }
+            else {
+                canvas.style.height = '95vh';
+                canvas.style.width = 'initial';
+            }
         };
+        window.onresize();
 
-        return player;
-    }
-}
-const sfx = {
-    'bgm': new Sfx('bgm', -5, true),
-    'timer_tick': new Sfx('timer_tick'),
-    'timer_tick_urgent': new Sfx('timer_tick_urgent'),
-    'drumroll': new Sfx('drumroll', 0, true, 0.461, 1.1176875),
-    'drumroll_end': new Sfx('drumroll_end'),
-    'correct': new Sfx('correct'),
-    'incorrect': new Sfx('incorrect'),
-    'timer_add': new Sfx('timer_add'),
-    'star_get': new Sfx('star_get')
-};
+        var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
 
-const STATE_DRUMROLL = 1;
-const STATE_MAINGAME = 2;
-const STATE_TIMEUP = 3;
-const STATE_CORRECT = 4;
+        // Initialize game loop, controller, and assets loading...
+        var loop = new Loop();
+        loop.doframeskip = true;
+        var controller = new Controller(canvas);
 
-const INVINCIBILITY_DURATION = 60;
-const DRUM_ROLL_DURATION = 120;
+        var assets = {};
+        var bundle = [
+            ['mario', 'image', 'src/gfx/mario.png'],
+            ['luigi', 'image', 'src/gfx/luigi.png'],
+            ['wario', 'image', 'src/gfx/wario.png'],
+            ['yoshi', 'image', 'src/gfx/yoshi.png'],
 
-const E_MARIO = 1;
-const E_LUIGI = 2;
-const E_WARIO = 3;
-const E_YOSHI = 4;
-const BRO_START = E_MARIO;
-const BRO_END = E_YOSHI;
+            ['wanted_bg', 'image', 'src/gfx/wanted_bg.png'],
+            ['mario_big', 'image', 'src/gfx/mario_big.png'],
+            ['luigi_big', 'image', 'src/gfx/luigi_big.png'],
+            ['wario_big', 'image', 'src/gfx/wario_big.png'],
+            ['yoshi_big', 'image', 'src/gfx/yoshi_big.png'],
 
-const PARTICLE_P5 = 1;
-const PARTICLE_M10 = 2;
+            ['time', 'image', 'src/gfx/time.png'],
+            ['level', 'image', 'src/gfx/level.png'],
+            ['numbers', 'image', 'src/gfx/numbers.png'],
+            ['plus_five', 'image', 'src/gfx/plus_five.png'],
+            ['minus_ten', 'image', 'src/gfx/minus_ten.png'],
 
-const BRO_ASSETS = {};
-BRO_ASSETS[E_MARIO] = {
-    sprite: 'mario',
-    bigsprite: 'mario_big'
-};
-BRO_ASSETS[E_LUIGI] = {
-    sprite: 'luigi',
-    bigsprite: 'luigi_big'
-};
-BRO_ASSETS[E_WARIO] = {
-    sprite: 'wario',
-    bigsprite: 'wario_big'
-};
-BRO_ASSETS[E_YOSHI] = {
-    sprite: 'yoshi',
-    bigsprite: 'yoshi_big'
-};
+            ['bgm', 'audio', 'src/sfx/bgm_loop.wav'],
+            ['timer_tick', 'audio', 'src/sfx/timer_tick.wav'],
+            ['timer_tick_urgent', 'audio', 'src/sfx/timer_tick_urgent.wav'],
+            ['drumroll', 'audio', 'src/sfx/drumroll_loop.wav'],
+            ['drumroll_end', 'audio', 'src/sfx/drumroll_end.wav'],
+            ['correct', 'audio', 'src/sfx/correct_fixed.wav'],
+            ['incorrect', 'audio', 'src/sfx/incorrect.wav'],
+            ['timer_add', 'audio', 'src/sfx/timer_add.wav'],
+            ['star_get', 'audio', 'src/sfx/star_get.wav'],
+        ];
 
-var holdingclick = false;
+        Assets.loadAssetBundle(assets, bundle,
+        (i) => {
+            Helpers.drawBg(ctx);
+            Helpers.drawLoadingBar(ctx, i/bundle.length);
+        },
+        () => {
+            console.log('done loading');
+            Helpers.drawBg(ctx);
+            Helpers.drawText(ctx, ['Click to Start!']);
+            controller.enableMouse();
 
-var state = 0;
-var tick = 0;
-var globaltick = 0;
-var level = 0;
-var difficulty = 0;
-var wantedbro = 0;
-var wantedbroi = 0;
-var spotlightr = 0;
-var lightson = false;
-var timeupbyincorrect = false;
-
-var time = 0;
-var timetick = 0;
-function updateTime() {
-    if (time > 0 && ++timetick === 60) {
-        timetick = 0;
-        time--;
-        if (time === 0) {
-            sfx['timer_tick_urgent'].play();
-            timeUpEvent();
-        }
-        else if (time <= 2) {
-            sfx['timer_tick_urgent'].play();
-        }
-        else {
-            sfx['timer_tick'].play();
-        }
-    }
-}
-
-function drawNumber(x,y, n, numbersize=16, orientation=0) {
-    var number = String(n);
-    var numberssprite = assets['numbers'];
-
-    for (var i = 0; i < number.length; i++) {
-        var xx = (
-            orientation === -1  ? x - numbersize * (number.length-1 - i) - numbersize/2 : // Right To Left
-            orientation === 0   ? x + i * numbersize - (number.length-1) * numbersize/2 - numbersize/2 : // Center
-            x + numbersize * i - numbersize/2 // Left To Right
-        );
-        var yy = y - numbersize/2;
-        ctx.drawImage(
-            numberssprite,
-            parseInt(number[i]) * 16, 0,
-            16,16,
-            Math.round(xx * scale), Math.round(yy * scale),
-            numbersize * scale, numbersize * scale
-        );
-    }
-}
-function drawGui() {
-    if (state === STATE_DRUMROLL) {
-        // Draw level display
-        var levelsprite = assets['level'];
-        var y = 168;
-        ctx.drawImage(
-            levelsprite,
-            Math.round((W/2 - 16 * String(level+1).length - levelsprite.width/2) * scale),
-            Math.round((y - levelsprite.height/2) * scale),
-            levelsprite.width * scale, levelsprite.height * scale
-        );
-
-        drawNumber(W/2 + 40, y, level+1, 16, -1);
-    }
-    else {
-        // Draw time display
-        var timesprite = assets['time'];
-        ctx.drawImage(
-            timesprite,
-            Math.round((W/2 - timesprite.width/2) * scale), Math.round(12 * scale),
-            timesprite.width * scale, timesprite.height * scale
-        );
-
-        drawNumber(W/2, 22 + 16, time, 32, 0);
-    }
-}
-
-function getRandomBroType() {
-    var candidates = [E_MARIO,E_LUIGI,E_WARIO,E_YOSHI];
-    return candidates[Helpers.randInt(0, candidates.length-1)];
-}
-function getRandomUnwantedBroType() {
-    var candidates = [E_MARIO,E_LUIGI,E_WARIO,E_YOSHI];
-    if (wantedbro !== 0)
-        candidates.splice(wantedbro-1, 1);
-
-    return candidates[Helpers.randInt(0, candidates.length-1)];
-}
-function selectNextWantedBro() {
-    if (level === 9)
-        wantedbro = E_LUIGI; // "On level 10, Luigi is always the character having to be found."
-    else
-        wantedbro = getRandomBroType();
-    console.log('next wanted bro:', wantedbro);
-}
-
-var bros = [];
-class Bro {
-    constructor(x=0,y=0,z=0,bro=0,behavior=0) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.bro = bro;
-        this.behavior = behavior;
-
-        this.vx = 0;
-        this.vy = 0;
-        this.wrap = 0;
-        this.bounce = false;
-
-        this.invincibility = 0;
-    }
-
-    update() {
-        if (this.invincibility) {
-            this.invincibility--;
-            return;
-        }
-
-        switch (this.behavior) {
-        case 1:
-            this.x += this.vx;
-            this.y += this.vy;
-
-            if (this.bounce) {
-                const dist = 12;
-                if (this.x > W - dist) {
-                    this.x = W - dist;
-                    this.vx = -this.vx;
-                }
-                else if (this.x < dist) {
-                    this.x = dist;
-                    this.vx = -this.vx;
-                }
-
-                if (this.y > SH - dist) {
-                    this.y = SH - dist;
-                    this.vy = -this.vy;
-                }
-                else if (this.y < dist) {
-                    this.y = dist;
-                    this.vy = -this.vy;
-                }
+            function onInput() {
+                start();
+                canvas.removeEventListener('touchend', onInput);
+                canvas.removeEventListener('click', onInput);
             }
-            else if (this.wrap > 0) {
-                var dist = (this.wrap - 1)*16;
-                if (this.x > W + dist)
-                    this.x = -dist;
-                else if (this.x < -dist)
-                    this.x = W + dist;
 
-                if (this.y > SH + dist)
-                    this.y = -dist;
-                else if (this.y < -dist)
-                    this.y = SH + dist;
-            }
-        }
-    }
-
-    mouseIsInside(x,y,offx=0,offy=0) {
-        const size = 32;
-        var left = this.x - size/2;
-        var top = this.y - size/2;
-        var right = this.x + size/2;
-        var bottom = this.y + size/2;
-
-        var inside = (x >= left && x <= right && y >= top && y <= bottom);
-
-        if (this.wrap !== 1)
-            return inside;
-
-        if (offx === 0 && left < 0)
-            inside ||= this.mouseIsInside(x,y, W,offy);
-        else if (offx === 0 && right > W)
-            inside ||= this.mouseIsInside(x,y, -W,offy);
-
-        if (offy === 0 && top < 0)
-            inside ||= this.mouseIsInside(x,y, offx,SH);
-        else if (offy === 0 && bottom > SH)
-            inside ||= this.mouseIsInside(x,y, offx,-SH);
-
-        return inside;
-    }
-
-    draw(offx=0, offy=0) {
-        if (this.invincibility && globaltick % 10 < 5)
-            return;
-
-        var sprite = assets[BRO_ASSETS[this.bro].sprite];
-        var left = offx + this.x - sprite.width/2;
-        var top = offy + this.y - sprite.height/2 + SH;
-
-        ctx.drawImage(
-            sprite,
-            Math.round(left * scale), Math.round(top * scale),
-            sprite.width * scale, sprite.height * scale
-        );
-
-        if (this.wrap !== 1)
-            return;
-
-        // Wraparound
-        if (offx === 0 && left < 0)
-            this.draw(W, offy);
-        else if (offx === 0 && left + sprite.width > W)
-            this.draw(-W, offy);
-
-        if (offy === 0 && top < SH)
-            this.draw(offx, SH);
-        else if (offy === 0 && top + sprite.height > H)
-            this.draw(offx, -SH);
-    }
-}
-function drawBros() {
-    var sorted = getSortedBrosArray();
-
-    for (var i = 0; i < sorted.length; i++)
-        sorted[i].draw();
-}
-function checkIfClickedBro() {
-    var x = controller.x / scale;
-    var y = controller.y / scale;
-
-    if (x < 0 || x > W || y < SH || y > H)
-        return;
-
-    if (bros[wantedbroi].mouseIsInside(x,y - SH)) {
-        console.log('yes :)');
-        
-        correctEvent();
-        particles.push(new Particle(bros[wantedbroi].x, bros[wantedbroi].y, PARTICLE_P5));
-        sfx['correct'].play();
-        return;
-    }
-
-    var sorted = getSortedBrosArray();
-    for (var i = sorted.length-1; i >= 0; i--) {
-        if (sorted[i].bro === wantedbro)
-            continue;
-
-        if (sorted[i].mouseIsInside(x,y - SH) && !sorted[i].invincibility) {
-            console.log('no :(');
-            sorted[i].invincibility = INVINCIBILITY_DURATION;
-            time -= 10;
-            if (time <= 0) {
-                time = 0;
-                timeUpEvent();
-                timeupbyincorrect = true;
-            }
-            particles.push(new Particle(sorted[i].x, sorted[i].y, PARTICLE_M10));
-            sfx['incorrect'].play();
-            return;
-        }
-    }
-}
-function clearAllExceptWantedBro() {
-    var bro = bros[wantedbroi];
-    bros.length = 0;
-    bros.push(bro);
-    wantedbroi = 0;
-}
-function clearAllBros() {
-    bros.length = 0;
-    wantedbroi = -1;
-}
-function getSortedBrosArray() {
-    var sorted = [];
-    for (var i = 0; i < bros.length; i++)
-        sorted[i] = bros[i];
-
-    sorted.sort((a, b) => {
-        return a.z - b.z;
-    });
-
-    return sorted;
-}
-
-var particles = [];
-class Particle {
-    constructor(x,y,type) {
-        this.x = x;
-        this.y = y;
-        this.type = type;
-
-        this.sprite = this.type === PARTICLE_P5 ? assets['plus_five'] : assets['minus_ten'];
-        this.tick = 0;
-        this.shouldkill = false;
-    };
-
-    update() {
-        this.tick++;
-
-        if (this.tick <= 20)
-            this.y += this.type === PARTICLE_P5 ? -1.25 : 1.25;
-
-        if (this.y < this.sprite.height/2)
-            this.y = this.sprite.height/2;
-        else if (this.y > SH - this.sprite.height/2)
-            this.y = SH - this.sprite.height/2;
-
-        if (this.tick === 75)
-            this.shouldkill = true;
-    }
-
-    draw() {
-        var left = this.x - this.sprite.width/2;
-        var top = this.y - this.sprite.height/2 + SH;
-
-        ctx.drawImage(
-            this.sprite,
-            Math.round(left * scale), Math.round(top * scale),
-            this.sprite.width * scale, this.sprite.height * scale
-        );
-    }
-}
-function updateParticles() {
-    for (var i = 0; i < particles.length; i++) {
-        particles[i].update();
-        if (particles[i].shouldkill) {
-            particles.splice(i, 1);
-            i--;
-        }
-    }
-}
-function drawParticles() {
-    for (var i = 0; i < particles.length; i++)
-        particles[i].draw(); 
-}
-
-function drawWantedBg() {
-    var temp = document.createElement('canvas');
-    temp.width = W*scale;
-    temp.height = SH*scale;
-    var tempctx = temp.getContext('2d');
-    tempctx.imageSmoothingEnabled = false;
-
-    // Wanted background
-    tempctx.drawImage(assets['wanted_bg'], 0,0, W*scale,SH*scale);
-
-    // Big sprite
-    var bigsprite = assets[BRO_ASSETS[wantedbro].bigsprite];
-    var left = W/2 - bigsprite.width/2;
-    var top = SH/2 - bigsprite.height/2 - 8;
-    tempctx.drawImage(
-        bigsprite,
-        Math.round(left * scale), Math.round(top * scale),
-        bigsprite.width * scale, bigsprite.height * scale
-    );
-
-    // Spotlight masks
-    if (!lightson) {
-        tempctx.globalCompositeOperation = 'destination-in';
-        tempctx.fillStyle = '#ffffff';
-        if (state === STATE_DRUMROLL) {
-            var distscale = 0;
-            const period = 40;
-            if ((0|(tick / period)) & 1)
-                distscale = (tick % period) / period;
-            else
-                distscale = (period - (tick % period)) / period;
-
-            var dist = distscale * 200;
-
-            tempctx.arc((W/2 + dist) * scale, SH/2 * scale, (spotlightr) * scale, Math.PI*2, 0);
-            tempctx.arc((W/2 - dist) * scale, SH/2 * scale, (spotlightr) * scale, Math.PI*2, 0);
-        }
-        else {
-            tempctx.arc((W/2) * scale, SH/2 * scale, (spotlightr) * scale, Math.PI*2, 0);
-        }
-    }
-
-    tempctx.fill();
-    tempctx.globalCompositeOperation = 'source-over';
-
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, W*scale, SH*scale);
-    ctx.drawImage(temp, 0, 0, temp.width, temp.height);
-}
-function drawBg() {
-    // Bottom background
-    ctx.fillStyle = lightson ? '#FFE742' : '#000000';
-    ctx.fillRect(0, SH*scale, W*scale, SH*scale);
-}
-
-function drumRollEvent() {
-    tick = 0;
-    lightson = false;
-    spotlightr = 64;
-    selectNextWantedBro();
-    state = STATE_DRUMROLL;
-}
-function mainGameEvent() {
-    tick = 0;
-    particles.length = 0;
-    generateLevel();
-    state = STATE_MAINGAME;
-}
-function timeUpEvent() {
-    tick = 0;
-    state = STATE_TIMEUP;
-}
-function correctEvent() {
-    tick = 0;
-    state = STATE_CORRECT;
-}
-function update() {
-    var wasHoldingclick = holdingclick;
-    holdingclick = controller.clicking;
-
-    if (state === STATE_DRUMROLL) {
-        tick++;
-
-        if (tick === 2) {
-            sfx['drumroll'].play();
-        }
-
-        if (tick === DRUM_ROLL_DURATION - 15) {
-            sfx['drumroll'].stopAllPlaying();
-            sfx['drumroll_end'].play();
-        }
-
-        if (tick === DRUM_ROLL_DURATION) {
-            mainGameEvent();
-        }
-
-        drawBg();
-        drawWantedBg();
-        drawGui();
-    }
-    else if (state === STATE_MAINGAME) {
-        updateTime();
-
-        // Bros
-        for (var i = 0; i < bros.length; i++) {
-            bros[i].update();
-        }
-
-        // Particles
-        updateParticles();
-
-        // Clicking
-        if (controller.clicking && !wasHoldingclick)
-            checkIfClickedBro();
-
-        drawBg();
-        drawBros();
-        drawParticles();
-        drawWantedBg();
-        drawGui();
-    }
-    else if (state === STATE_TIMEUP) {
-        if (tick === (timeupbyincorrect ? 64 : 0)) {
-            clearAllExceptWantedBro();
-        }
-        tick++;
-
-        // Particles
-        updateParticles();
-
-        if (tick >= 48)
-            lightson = true;
-        else
-            spotlightr += 2;
-
-        // Todo: gameover sequence
-        if (tick === 120*1.5) {
-            start();
-        }
-
-        drawBg();
-        drawBros();
-        drawParticles();
-        drawWantedBg();
-        drawGui();
-    }
-    else if (state === STATE_CORRECT) {
-        if (tick === 0) {
-            if (level === 9)
-                clearAllBros();
-            else
-                clearAllExceptWantedBro();
-        }
-        tick++;
-
-        // Particles
-        updateParticles();
-
-        if (tick >= 48)
-            lightson = true;
-        else
-            spotlightr += 2;
-
-        // Add time
-        for (var i = 0; i < 5; i++) {
-            if (tick === 80 + i*4) {
-                if (time < 50)
-                    time++;
-                sfx['timer_add'].play();
-                break;
-            }
-        }
-        if (tick === 80) {
-            sfx['star_get'].play();
-        }
-
-        // Next level
-        if (tick === 200) {
-            level++;
-            drumRollEvent();
-
-            if ((level % 5) !== 0)
-                tick = DRUM_ROLL_DURATION - 30;
-        }
-
-        drawBg();
-        drawBros();
-        drawParticles();
-        drawWantedBg();
-        drawGui();
-    }
-
-    // drawBg();
-    // drawBros();
-    // drawWantedBg();
-    // drawGui();
-    globaltick++;
-}
-
-function start() {
-    Tone.start();
-    sfx['bgm'].stopAllPlaying();
-    sfx['bgm'].play();
-
-    time = 10;
-    level = 0;
-    difficulty = 0;
-    timeupbyincorrect = false;
-    globaltick = 0;
-    drumRollEvent();
-
-    loop.start();
-    console.log('started');
-}
-
-// function waitForInput() {
-//     if (controller.clicking) {
-//         loop.onUpdate = update;
-//         Tone.start();
-//     }
-// }
-
-loop.onUpdate = update;
+            canvas.addEventListener('touchend', onInput);
+            canvas.addEventListener('click', onInput);
+        },
+        (e) => {
+            throw e;
+        });
 
     </script>
-
 </body>
 </html>
